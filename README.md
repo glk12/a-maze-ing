@@ -114,7 +114,7 @@ Current implementation assumptions:
 
 - `ENTRY` and `EXIT` use zero-based coordinates in `x,y` format.
 - `PERFECT` must be `True` or `False`.
-- the implemented mandatory path currently supports `PERFECT=True`.
+- the current generator supports `PERFECT=True`.
 
 ## Maze Model
 
@@ -146,6 +146,8 @@ The current generator uses seeded recursive backtracking with an explicit stack:
 
 This produces a connected spanning tree, which is why `PERFECT=True` yields exactly one path between any two cells.
 
+When the maze is large enough, the generator also reserves a centered internal `42` pattern made of fully closed cells. Those reserved cells are excluded from the active maze graph and stay closed in the final output.
+
 ## Validation Rules Implemented
 
 The current code validates:
@@ -156,11 +158,12 @@ The current code validates:
 - entry and exit inside bounds;
 - entry and exit being different;
 - border walls remaining closed;
+- reserved `42` pattern cells remaining fully closed;
 - neighboring wall coherence;
-- full maze connectivity;
+- full maze connectivity for all non-pattern cells;
 - shortest path existence between entry and exit;
 - rejection of open `3x3` areas;
-- perfect-maze property through graph validation.
+- perfect-maze property through graph validation on non-pattern cells.
 
 ## Output File Format
 
@@ -196,6 +199,7 @@ The project currently uses terminal ASCII rendering, which satisfies the mandato
 - walls;
 - the entry cell as `E`;
 - the exit cell as `X`;
+- reserved `42` cells as `#`;
 - the shortest path as `*`.
 
 ## Reusable Package
@@ -288,6 +292,5 @@ Covered in the current implementation:
 
 Still needs subject review:
 
-- exact `42` pattern behavior from the PDF;
 - non-perfect generation when `PERFECT=False`;
 - final confirmation that every README detail matches the subject wording exactly.

@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections import deque
 
 from .model import Coordinate, Direction, Maze
+from .pattern import get_42_pattern_cells
 
 
 class MazeValidationError(Exception):
@@ -19,17 +20,19 @@ def validate_maze(
 ) -> None:
     """Validate structural maze constraints used by the project."""
 
+    pattern_cells = get_42_pattern_cells(maze.width, maze.height, entry, exit_coord)
     if not maze.in_bounds(entry):
         raise MazeValidationError("Entry coordinate is outside the maze.")
     if not maze.in_bounds(exit_coord):
         raise MazeValidationError("Exit coordinate is outside the maze.")
+    _validate_42_pattern_cells(maze, pattern_cells)
     _validate_neighbor_coherence(maze)
     _validate_borders(maze)
-    if not _is_fully_connected(maze):
+    if not _is_fully_connected(maze, pattern_cells):
         raise MazeValidationError("Maze is not fully connected.")
     if _has_open_three_by_three_area(maze):
         raise MazeValidationError("Maze contains a forbidden 3x3 open area.")
-    if perfect and not _is_tree(maze):
+    if perfect and not _is_tree(maze, pattern_cells):
         raise MazeValidationError(
             "PERFECT=True requires exactly one path between any two cells."
         )
@@ -91,6 +94,14 @@ def _validate_neighbor_coherence(maze: Maze) -> None:
                 raise MazeValidationError("Neighboring cells disagree about a wall.")
 
 
+def _validate_42_pattern_cells(maze: Maze, pattern_cells: set[Coordinate]) -> None:
+    """Ensure reserved 42 cells remain fully closed."""
+
+    for coord in pattern_cells:
+        if maze.cell_at(coord).walls != 0xF:
+            raise MazeValidationError("42 pattern cells must remain fully closed.")
+
+
 def _validate_borders(maze: Maze) -> None:
     """Ensure the external border remains closed."""
 
@@ -106,36 +117,50 @@ def _validate_borders(maze: Maze) -> None:
             raise MazeValidationError("Right border must stay closed.")
 
 
-def _is_fully_connected(maze: Maze) -> bool:
-    """Return whether every cell can be reached from the first one."""
+def _is_fully_connected(maze: Maze, pattern_cells: set[Coordinate]) -> bool:
+    """Return whether every non-pattern cell can be reached from the first one."""
 
-    start = Coordinate(0, 0)
+    active_cells = [
+        coord for coord in maze.iter_coordinates() if coord not in pattern_cells
+    ]
+    if not active_cells:
+        return False
+
+    start = active_cells[0]
     queue: deque[Coordinate] = deque([start])
     visited = {start}
 
     while queue:
         current = queue.popleft()
         for direction, neighbor in maze.neighbors(current):
-            if neighbor in visited:
+            if neighbor in visited or neighbor in pattern_cells:
                 continue
             if not maze.is_open(current, direction):
                 continue
             visited.add(neighbor)
             queue.append(neighbor)
 
-    return len(visited) == maze.width * maze.height
+    return len(visited) == len(active_cells)
 
 
-def _is_tree(maze: Maze) -> bool:
-    """Return whether the maze graph is a spanning tree."""
+def _is_tree(maze: Maze, pattern_cells: set[Coordinate]) -> bool:
+    """Return whether the active maze graph is a spanning tree."""
 
     undirected_edges = 0
     for coord in maze.iter_coordinates():
+        if coord in pattern_cells:
+            continue
         for direction in (Direction.EAST, Direction.SOUTH):
+            neighbor = coord.moved(direction)
+            if neighbor in pattern_cells:
+                continue
             if maze.is_open(coord, direction):
                 undirected_edges += 1
-    node_count = maze.width * maze.height
-    return _is_fully_connected(maze) and undirected_edges == node_count - 1
+    node_count = sum(1 for coord in maze.iter_coordinates() if coord not in pattern_cells)
+    return (
+        _is_fully_connected(maze, pattern_cells)
+        and undirected_edges == node_count - 1
+    )
 
 
 def _has_open_three_by_three_area(maze: Maze) -> bool:

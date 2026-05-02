@@ -6,6 +6,7 @@ import random
 
 from .config import MazeConfig
 from .model import Coordinate, Maze
+from .pattern import get_42_pattern_cells
 
 
 class MazeGenerator:
@@ -30,10 +31,19 @@ class MazeGenerator:
         """Build a perfect maze with iterative recursive backtracking."""
 
         maze = Maze(self.config.width, self.config.height)
-        start = Coordinate(
-            x=self._random.randrange(self.config.width),
-            y=self._random.randrange(self.config.height),
+        pattern_cells = get_42_pattern_cells(
+            self.config.width,
+            self.config.height,
+            self.config.entry,
+            self.config.exit,
         )
+        active_cells = [
+            coord for coord in maze.iter_coordinates() if coord not in pattern_cells
+        ]
+        if not active_cells:
+            raise ValueError("Maze does not contain any active cells to generate.")
+
+        start = self._random.choice(active_cells)
         stack = [start]
         visited = {start}
 
@@ -42,7 +52,7 @@ class MazeGenerator:
             candidates = [
                 (direction, neighbor)
                 for direction, neighbor in maze.neighbors(current)
-                if neighbor not in visited
+                if neighbor not in visited and neighbor not in pattern_cells
             ]
             if not candidates:
                 stack.pop()
