@@ -1,67 +1,49 @@
+*This project has been created as part of the 42 curriculum by glopes-a, vguerra-.*
+
 # A-Maze-ing
 
-Python 3.10+ maze generator for the 42 project `A-Maze-ing`.
+## Description
 
-The project provides:
+`A-Maze-ing` is a Python 3.10+ maze generator built for the 42 project of the same name.
+Its goal is to generate a valid maze from a configuration file, validate that maze against
+the mandatory rules, compute the shortest path between the entry and exit, print a visual
+ASCII representation in the terminal, and export the final maze in the hexadecimal format
+required by the subject.
 
-- the required entrypoint `a_maze_ing.py`;
-- a reusable `MazeGenerator` implementation inside the `mazegen` package;
-- maze validation, solving, ASCII rendering, and hexadecimal export.
+The current implementation is organized around a reusable package, [`mazegen/`](/home/glopes-a/a-maze-ing/mazegen),
+plus the required CLI entrypoint [`a_maze_ing.py`](/home/glopes-a/a-maze-ing/a_maze_ing.py).
+The main flow is:
 
-The project subject remains the source of truth. This README documents the current implementation and how to use it.
+1. Parse and validate the config file.
+2. Generate a maze from the validated settings.
+3. Validate the generated structure.
+4. Solve the shortest path from `ENTRY` to `EXIT`.
+5. Render the maze in ASCII.
+6. Write the maze and solution path to the output file.
 
-## Authors
+## Instructions
 
-- `glopes-a`
-- `vguerra-`
+### Requirements
 
-## Subject Summary
+- Python `3.10` or newer
 
-The mandatory project requires:
+### Installation
 
-- execution with `python3 a_maze_ing.py config.txt`;
-- a config file using `KEY=VALUE`;
-- mandatory keys `WIDTH`, `HEIGHT`, `ENTRY`, `EXIT`, `OUTPUT_FILE`, `PERFECT`;
-- random maze generation with reproducibility through a seed;
-- wall encoding per cell using the `N/E/S/W` bit layout;
-- coherent shared walls between neighboring cells;
-- valid entry and exit coordinates inside bounds and different from each other;
-- external borders closed by walls;
-- full connectivity and no isolated cells;
-- shortest valid path written with `N`, `E`, `S`, `W`;
-- output file encoded row by row in hexadecimal;
-- visual maze representation in the terminal;
-- robust handling of invalid config, impossible parameters, missing files, and unexpected errors;
-- `Makefile`, type hints, docstrings, and project documentation.
-
-## Repository Structure
-
-- [`a_maze_ing.py`](/home/glopes-a/a-maze-ing/a_maze_ing.py): command-line entrypoint.
-- [`mazegen/`](/home/glopes-a/a-maze-ing/mazegen): reusable maze package.
-- [`config.txt`](/home/glopes-a/a-maze-ing/config.txt): example configuration file.
-- [`tools/validate_sample.py`](/home/glopes-a/a-maze-ing/tools/validate_sample.py): small validation script.
-- [`Makefile`](/home/glopes-a/a-maze-ing/Makefile): required project commands.
-- [`en.subject.pdf`](/home/glopes-a/a-maze-ing/en.subject.pdf): subject PDF in the repository.
-
-## Installation
-
-Use Python 3.10 or newer.
-
-Install the reusable package locally:
+Install the local package in editable mode:
 
 ```bash
 make install
 ```
 
-This runs:
+Equivalent command:
 
 ```bash
 python3 -m pip install -e .
 ```
 
-## Usage
+### Execution
 
-Run the program with:
+Run the mandatory entrypoint with a config file:
 
 ```bash
 python3 a_maze_ing.py config.txt
@@ -73,17 +55,30 @@ Or use:
 make run
 ```
 
-The program prints an ASCII representation of the maze and writes the output file configured by `OUTPUT_FILE`.
+The program:
+
+- reads the configuration from `config.txt`;
+- prints an ASCII maze in the terminal;
+- writes the exported maze to the file configured by `OUTPUT_FILE`.
+
+### Useful commands
+
+- `make debug`: runs the program with `PYTHONFAULTHANDLER=1`
+- `make lint`: runs `flake8` and `mypy`
+- `python3 tools/validate_sample.py`: generates a maze and prints a short validation summary
 
 ## Configuration File
 
-The config file format is:
+The configuration file uses one `KEY=VALUE` pair per line.
 
-```text
-KEY=VALUE
-```
+Rules:
 
-Empty lines and lines starting with `#` are ignored.
+- Empty lines are ignored.
+- Lines starting with `#` are ignored.
+- Duplicate keys are rejected.
+- Missing mandatory keys are rejected.
+
+### Complete structure
 
 Mandatory keys:
 
@@ -94,82 +89,94 @@ Mandatory keys:
 - `OUTPUT_FILE`
 - `PERFECT`
 
-Supported optional keys:
+Optional key:
 
 - `SEED`
 
-Example:
+### Expected format of each field
+
+- `WIDTH=<positive integer>`
+- `HEIGHT=<positive integer>`
+- `ENTRY=<x,y>`
+- `EXIT=<x,y>`
+- `OUTPUT_FILE=<path or filename>`
+- `PERFECT=True|False`
+- `SEED=<integer or string>` optional
+
+Additional constraints enforced by the code:
+
+- `ENTRY` and `EXIT` use zero-based coordinates.
+- `ENTRY` must be inside maze bounds.
+- `EXIT` must be inside maze bounds.
+- `ENTRY` and `EXIT` must be different.
+- `OUTPUT_FILE` must not be empty.
+- The current generator only implements `PERFECT=True`.
+
+### Example
 
 ```text
-WIDTH=8
-HEIGHT=6
+# Default A-Maze-ing configuration
+WIDTH=15
+HEIGHT=13
 ENTRY=0,0
-EXIT=7,5
+EXIT=10,5
 OUTPUT_FILE=output_maze.txt
 PERFECT=True
 SEED=42
 ```
 
-Current implementation assumptions:
-
-- `ENTRY` and `EXIT` use zero-based coordinates in `x,y` format.
-- `PERFECT` must be `True` or `False`.
-- the current generator supports `PERFECT=True`.
-
-## Maze Model
-
-Each cell stores four walls:
-
-- bit `0`: North
-- bit `1`: East
-- bit `2`: South
-- bit `3`: West
-
-In the code, the hexadecimal wall mask is:
-
-- `1` for North
-- `2` for East
-- `4` for South
-- `8` for West
-
-All cells start fully closed as `0xF`. When a passage is carved, the wall is removed from both neighboring cells to keep the maze coherent.
-
 ## Generation Algorithm
 
-The current generator uses seeded recursive backtracking with an explicit stack:
+The project uses a seeded recursive backtracking algorithm implemented iteratively with an
+explicit stack in [`mazegen/generator.py`](/home/glopes-a/a-maze-ing/mazegen/generator.py).
 
-1. Create a grid where every cell has all four walls.
-2. Choose a random start cell using the configured seed.
-3. Pick a random unvisited neighbor.
-4. Remove the shared wall between the two cells.
-5. Continue until stuck, then backtrack.
+Algorithm steps:
 
-This produces a connected spanning tree, which is why `PERFECT=True` yields exactly one path between any two cells.
+1. Create a grid where every cell starts fully closed with the wall mask `0xF`.
+2. Reserve the internal `42` pattern cells when the maze is large enough.
+3. Choose a random active start cell using the configured `SEED`.
+4. Repeatedly choose a random unvisited neighbor.
+5. Open the shared wall between the current cell and that neighbor.
+6. Push the neighbor onto the stack and continue.
+7. If a cell has no valid unvisited neighbors, pop the stack to backtrack.
+8. Stop when all active cells have been visited.
 
-When the maze is large enough, the generator also reserves a centered internal `42` pattern made of fully closed cells. Those reserved cells are excluded from the active maze graph and stay closed in the final output.
+### Why this algorithm
 
-## Validation Rules Implemented
+We chose recursive backtracking because it matches the mandatory project requirements well:
 
-The current code validates:
+- it is simple to reason about and implement correctly;
+- it naturally produces connected mazes;
+- it produces a spanning tree, which directly supports the `PERFECT=True` rule;
+- it works well with deterministic randomness through a seed;
+- it integrates cleanly with the project's wall-bit model and validation rules.
 
-- config syntax and missing mandatory keys;
-- integer dimensions greater than zero;
-- valid `ENTRY` and `EXIT` format;
-- entry and exit inside bounds;
-- entry and exit being different;
-- border walls remaining closed;
-- reserved `42` pattern cells remaining fully closed;
-- neighboring wall coherence;
-- full maze connectivity for all non-pattern cells;
-- shortest path existence between entry and exit;
-- rejection of open `3x3` areas;
-- perfect-maze property through graph validation on non-pattern cells.
+Using an explicit stack instead of Python recursion also avoids recursion-depth issues on
+larger mazes and keeps the control flow easier to inspect while debugging.
 
-## Output File Format
+## Maze Format And Model
 
-The output file writes the maze row by row, one hexadecimal digit per cell.
+Each maze cell stores its walls as a 4-bit mask in [`mazegen/model.py`](/home/glopes-a/a-maze-ing/mazegen/model.py):
 
-After one empty line, it writes:
+- `1`: North
+- `2`: East
+- `4`: South
+- `8`: West
+
+All cells begin as `0xF`, meaning all four walls are closed. When the generator carves a
+passage, it removes the wall from both adjacent cells so the maze remains coherent.
+
+The main reusable types are:
+
+- `Direction`: cardinal directions plus movement helpers
+- `Coordinate`: immutable `x, y` positions
+- `Cell`: one cell and its wall mask
+- `Maze`: the whole grid with neighbor lookup and passage carving helpers
+
+## Output Format
+
+The output file is written row by row, one hexadecimal digit per cell. After an empty line,
+the metadata block is appended:
 
 ```text
 ENTRY=x,y
@@ -177,7 +184,7 @@ EXIT=x,y
 PATH=NNEESW
 ```
 
-Example generated output:
+Example:
 
 ```text
 97953953
@@ -192,105 +199,131 @@ EXIT=7,5
 PATH=SEENEESENEESSSWNWWSESSENES
 ```
 
-## Terminal Visualization
+## Reusable Parts
 
-The project currently uses terminal ASCII rendering, which satisfies the mandatory visual requirement. The rendered maze shows:
+The reusable part of the project is the [`mazegen/`](/home/glopes-a/a-maze-ing/mazegen)
+package. It is separated from the CLI entrypoint so the generation logic can be imported
+and reused in other scripts, tests, or future projects.
 
-- walls;
-- the entry cell as `E`;
-- the exit cell as `X`;
-- reserved `42` cells as `#`;
-- the shortest path as `*`.
+Main reusable modules:
 
-## Reusable Package
+- [`mazegen/config.py`](/home/glopes-a/a-maze-ing/mazegen/config.py): config parsing and validation
+- [`mazegen/model.py`](/home/glopes-a/a-maze-ing/mazegen/model.py): maze data model
+- [`mazegen/generator.py`](/home/glopes-a/a-maze-ing/mazegen/generator.py): maze generation
+- [`mazegen/solver.py`](/home/glopes-a/a-maze-ing/mazegen/solver.py): validation and shortest-path solving
+- [`mazegen/render.py`](/home/glopes-a/a-maze-ing/mazegen/render.py): terminal rendering
+- [`mazegen/output.py`](/home/glopes-a/a-maze-ing/mazegen/output.py): export serialization
 
-The `MazeGenerator` is implemented inside the standalone package [`mazegen/`](/home/glopes-a/a-maze-ing/mazegen). This keeps the generation logic reusable for future projects and prepares the repository for packaging later.
+In practice, another script can import `load_config`, `MazeGenerator`, `validate_maze`, or
+`solve_shortest_path` directly from `mazegen` without depending on the CLI.
 
-Main modules:
+## Team And Project Management
 
-- [`mazegen/config.py`](/home/glopes-a/a-maze-ing/mazegen/config.py)
-- [`mazegen/model.py`](/home/glopes-a/a-maze-ing/mazegen/model.py)
-- [`mazegen/generator.py`](/home/glopes-a/a-maze-ing/mazegen/generator.py)
-- [`mazegen/solver.py`](/home/glopes-a/a-maze-ing/mazegen/solver.py)
-- [`mazegen/output.py`](/home/glopes-a/a-maze-ing/mazegen/output.py)
-- [`mazegen/render.py`](/home/glopes-a/a-maze-ing/mazegen/render.py)
+### Team roles
 
-## Makefile
+- `glopes-a`: implementation, project structure, packaging, CLI integration, documentation
+- `vguerra-`: implementation, validation logic, testing, review, documentation
 
-Available targets:
+These roles were collaborative rather than rigid; both contributors reviewed architecture,
+generation behavior, and output compliance throughout the project.
 
-- `make install`: install the package in editable mode.
-- `make run`: run the project with `config.txt`.
-- `make debug`: run with Python fault handler enabled.
-- `make clean`: remove cache and build artifacts.
-- `make lint`: run `flake8` and `mypy` with the required flags.
+### Planning and evolution
 
-## Manual Validation
+Initial plan:
 
-Main flow:
+1. Define the maze data model and wall encoding.
+2. Implement config parsing and input validation.
+3. Implement a correct mandatory maze generation algorithm.
+4. Add shortest-path solving and structural validation.
+5. Add ASCII rendering and file export.
+6. Package the reusable code and document the project.
+
+How it evolved:
+
+- The reusable package boundary became more important than originally planned, so core logic
+  was grouped under `mazegen/` instead of being kept directly in the entrypoint.
+- Validation grew from simple config checks into a separate structural verification step for
+  borders, coherence, connectivity, perfect-maze properties, and forbidden open `3x3` areas.
+- The internal `42` reserved pattern was integrated into generation, validation, and rendering,
+  which forced cleaner separation between active maze cells and blocked cells.
+
+### What worked well
+
+- Separating the reusable package from the CLI kept the code easier to reason about.
+- Using a compact wall-bit model made generation, validation, rendering, and export align well.
+- Deterministic seeding made debugging and comparison much easier.
+- Validating the generated maze after creation gave fast feedback on rule compliance.
+
+### What could be improved
+
+- Only `PERFECT=True` is currently implemented; non-perfect maze generation is not yet supported.
+- There are no automated unit tests yet; current checks are based on manual validation and linting.
+- Additional output modes or alternative generation algorithms could be added in the future.
+
+### Tools used
+
+- `Python 3.10+`
+- `make`
+- `flake8`
+- `mypy`
+- local shell tooling for manual runs and verification
+
+## Validation And Quality Checks
+
+Manual validation flow:
 
 ```bash
 python3 a_maze_ing.py config.txt
-```
-
-Validation helper:
-
-```bash
 python3 tools/validate_sample.py
+make lint
 ```
 
-Good manual checks:
+Useful manual checks:
 
-- remove one mandatory key from the config file;
-- set `ENTRY` or `EXIT` outside bounds;
+- remove one mandatory config key;
+- place `ENTRY` or `EXIT` outside bounds;
 - set `ENTRY` equal to `EXIT`;
 - write an invalid line without `=`;
 - change `SEED` and confirm the maze changes;
 - run twice with the same `SEED` and confirm the maze stays the same.
 
-## Quality Checks
+## Advanced Features
 
-The subject requires:
+Beyond the minimal CLI flow, the current implementation also includes:
 
-```bash
-flake8 .
-mypy . --warn-return-any --warn-unused-ignores --ignore-missing-imports --disallow-untyped-defs --check-untyped-defs
-```
+- deterministic generation through `SEED`;
+- reusable Python package organization;
+- shortest-path solving with direction export;
+- terminal ASCII rendering with path highlighting;
+- structural post-generation validation;
+- internal reserved `42` pattern rendering when the maze is large enough.
 
-These commands are exposed through:
+The project does not currently implement multiple generation algorithms or multiple display
+backends.
 
-```bash
-make lint
-```
+## Resources
 
-## Error Handling
+Classic references used for the topic:
 
-The CLI handles:
+- The official project subject: [`en.subject.pdf`](/home/glopes-a/a-maze-ing/en.subject.pdf)
+- Python documentation: https://docs.python.org/3/
+- `dataclasses` documentation: https://docs.python.org/3/library/dataclasses.html
+- `enum` documentation: https://docs.python.org/3/library/enum.html
+- `pathlib` documentation: https://docs.python.org/3/library/pathlib.html
+- Depth-first search and backtracking references for maze generation:
+  https://en.wikipedia.org/wiki/Maze_generation_algorithm
+- Breadth-first search reference for shortest-path solving:
+  https://en.wikipedia.org/wiki/Breadth-first_search
 
-- missing config file;
-- unreadable config file;
-- invalid config syntax;
-- missing mandatory keys;
-- invalid values and impossible coordinates;
-- invalid generated maze state;
-- unexpected runtime errors with a fallback message.
+### AI usage
 
-## Current Status
+AI was used as an assistant for:
 
-Covered in the current implementation:
+- structuring and refining documentation;
+- explaining code behavior and reviewing readability;
+- checking alignment between the implementation and the README requirements;
+- suggesting wording improvements and organizational cleanup.
 
-- config parser;
-- maze data model;
-- reusable `MazeGenerator`;
-- seeded recursive-backtracking generation;
-- structural validation and shortest-path solver;
-- hexadecimal output encoder;
-- terminal ASCII rendering;
-- root CLI entrypoint;
-- Makefile;
-- README and validation helper script.
-
-Still needs subject review:
-
-- non-perfect generation when `PERFECT=False`;
-- final confirmation that every README detail matches the subject wording exactly.
+AI was not used as a substitute for validating the mandatory project rules. Final design
+choices, implementation decisions, debugging, verification, and compliance checks remained
+the responsibility of the project authors.
