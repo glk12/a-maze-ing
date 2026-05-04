@@ -21,10 +21,6 @@ class MazeGenerator:
     def generate(self) -> Maze:
         """Generate a maze that satisfies the mandatory perfect-maze rules."""
 
-        if not self.config.perfect:
-            raise ValueError(
-                "Only PERFECT=True is implemented for the mandatory version."
-            )
         return self._generate_perfect_maze()
 
     def _generate_perfect_maze(self) -> Maze:

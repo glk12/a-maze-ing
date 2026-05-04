@@ -89,6 +89,9 @@ def load_config(path_str: str) -> MazeConfig:
         raise MazeConfigError("OUTPUT_FILE must not be empty.")
 
     perfect = _parse_bool(raw_values["PERFECT"], "PERFECT")
+    if not perfect:
+        raise MazeConfigError("Only PERFECT=True is supported by the current generator.")
+
     seed = raw_values.get("SEED")
     if seed is not None:
         try:
