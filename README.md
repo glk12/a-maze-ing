@@ -26,6 +26,7 @@ The main flow is:
 ### Requirements
 
 - Python `3.10` or newer
+- A shell environment able to run `make` and `python3`
 
 ### Installation
 
@@ -324,6 +325,3 @@ AI was used as an assistant for:
 - checking alignment between the implementation and the README requirements;
 - suggesting wording improvements and organizational cleanup.
 
-AI was not used as a substitute for validating the mandatory project rules. Final design
-choices, implementation decisions, debugging, verification, and compliance checks remained
-the responsibility of the project authors.
