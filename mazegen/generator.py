@@ -5,7 +5,7 @@ from __future__ import annotations
 import random
 
 from .config import MazeConfig
-from .model import Coordinate, Maze
+from .model import Maze
 from .pattern import get_42_pattern_cells
 
 
@@ -34,10 +34,14 @@ class MazeGenerator:
             self.config.exit,
         )
         active_cells = [
-            coord for coord in maze.iter_coordinates() if coord not in pattern_cells
+            coord
+            for coord in maze.iter_coordinates()
+            if coord not in pattern_cells
         ]
         if not active_cells:
-            raise ValueError("Maze does not contain any active cells to generate.")
+            raise ValueError(
+                "Maze does not contain any active cells to generate."
+            )
 
         start = self._random.choice(active_cells)
         stack = [start]

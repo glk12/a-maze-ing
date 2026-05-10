@@ -41,7 +41,6 @@ Equivalent command:
 ```bash
 python3 -m pip install -e .
 ```
-
 ### Execution
 
 Run the mandatory entrypoint with a config file:
@@ -64,8 +63,10 @@ The program:
 
 ### Useful commands
 
-- `make debug`: runs the program with `PYTHONFAULTHANDLER=1`
-- `make lint`: runs `flake8` and `mypy`
+- `make package`: builds a local wheel artifact like `mazegen-0.1.0-py3-none-any.whl` in the project root
+- `make debug`: runs the program under Python's built-in debugger (`pdb`)
+- `make lint`: runs `flake8` and `mypy` from the active Python environment
+- `python3 -m build`: rebuilds the package artifacts under `dist/`
 - `python3 tools/validate_sample.py`: generates a maze and prints a short validation summary
 
 ## Configuration File
@@ -177,13 +178,19 @@ The main reusable types are:
 ## Output Format
 
 The output file is written row by row, one hexadecimal digit per cell. After an empty line,
-the metadata block is appended:
+the current implementation appends a metadata block with the entry coordinates, exit coordinates,
+and shortest path.
+
+In the current implementation, that block is serialized as:
 
 ```text
-ENTRY=x,y
-EXIT=x,y
-PATH=NNEESW
+x,y
+x,y
+NNEESW
 ```
+
+This matches the literal three-line format expected by the subject and evaluation scale:
+entry coordinates, exit coordinates, and the shortest path directions.
 
 Example:
 
@@ -195,9 +202,9 @@ A956C3C6
 AC393A93
 C7C6C46E
 
-ENTRY=0,0
-EXIT=7,5
-PATH=SEENEESENEESSSWNWWSESSENES
+0,0
+7,5
+SEENEESENEESSSWNWWSESSENES
 ```
 
 ## Reusable Parts
@@ -320,8 +327,7 @@ Classic references used for the topic:
 
 AI was used as an assistant for:
 
-- structuring and refining documentation;
+- structuring and refining the README sections;
+- checking alignment between the implementation, the subject, and the evaluation rubric;
 - explaining code behavior and reviewing readability;
-- checking alignment between the implementation and the README requirements;
 - suggesting wording improvements and organizational cleanup.
-

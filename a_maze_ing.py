@@ -17,6 +17,7 @@ from mazegen import (
     validate_maze,
 )
 from mazegen.output import build_output_text, write_output_file
+from mazegen.pattern import can_fit_42_pattern, get_42_pattern_minimum_size
 from mazegen.render import render_ascii
 
 ANSI_CLEAR_SCREEN = "\033[2J\033[H"
@@ -42,12 +43,17 @@ def main(argv: list[str] | None = None) -> int:
         config = load_config(args[0])
         _run_interactive_session(config)
         return 0
+    except KeyboardInterrupt:
+        print()
+        return 130
     except (MazeConfigError, MazeValidationError, ValueError, OSError) as exc:
         print(f"Error: {exc}", file=sys.stderr)
         return 1
-    except Exception as exc:  # pragma: no cover - last-resort guard for the CLI
+    except Exception as exc:  # pragma: no cover
+        # Last-resort guard for unexpected CLI failures.
         print(f"Unexpected error: {exc}", file=sys.stderr)
         return 1
+
 
 def _run_interactive_session(config: MazeConfig) -> None:
     """Run an interactive ASCII session for viewing and regenerating mazes."""
@@ -56,19 +62,33 @@ def _run_interactive_session(config: MazeConfig) -> None:
     color_index = 0
     generation_index = 0
     status_message = ""
-    maze, solution_cells, directions = _generate_and_export(config, generation_index)
+    pattern_message = _build_42_pattern_message(config)
+    maze, solution_cells, directions = _generate_and_export(
+        config,
+        generation_index,
+    )
 
     while True:
         color_name, wall_color = WALL_COLORS[color_index]
         print(ANSI_CLEAR_SCREEN, end="")
         visible_solution = solution_cells if show_path else []
-        print(render_ascii(maze, config.entry, config.exit, visible_solution, wall_color))
+        print(
+            render_ascii(
+                maze,
+                config.entry,
+                config.exit,
+                visible_solution,
+                wall_color,
+            )
+        )
         print(f"\nOutput written to {config.output_file}")
         print(f"Shortest path: {directions if show_path else '[hidden]'}")
         print(
             "Controls: [r] regenerate  [p] show/hide path  "
             f"[c] wall color ({color_name})  [q] quit"
         )
+        if pattern_message:
+            print(pattern_message)
         if status_message:
             print(status_message)
         try:
@@ -90,7 +110,9 @@ def _run_interactive_session(config: MazeConfig) -> None:
             continue
         if command in {"c", "color", "colour"}:
             color_index = (color_index + 1) % len(WALL_COLORS)
-            status_message = f"Wall color changed to {WALL_COLORS[color_index][0]}."
+            status_message = (
+                f"Wall color changed to {WALL_COLORS[color_index][0]}."
+            )
             continue
         if command in {"r", "regen", "regenerate"}:
             generation_index += 1
@@ -134,13 +156,29 @@ def _generate_and_export(
     return maze, solution_cells, directions
 
 
-def _config_for_generation(config: MazeConfig, generation_index: int) -> MazeConfig:
+def _config_for_generation(
+    config: MazeConfig,
+    generation_index: int,
+) -> MazeConfig:
     """Return the config to use for the requested generation cycle."""
 
     if generation_index == 0:
         return config
     base_seed = config.seed if config.seed is not None else "interactive"
     return replace(config, seed=f"{base_seed}:regen:{generation_index}")
+
+
+def _build_42_pattern_message(config: MazeConfig) -> str:
+    """Return the terminal note required when the maze is too small for 42."""
+
+    if can_fit_42_pattern(config.width, config.height):
+        return ""
+    minimum_width, minimum_height = get_42_pattern_minimum_size()
+    return (
+        "42 pattern omitted: maze size "
+        f"{config.width}x{config.height} is too small "
+        f"(minimum {minimum_width}x{minimum_height})."
+    )
 
 
 if __name__ == "__main__":

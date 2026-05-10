@@ -54,17 +54,21 @@ def load_config(path_str: str) -> MazeConfig:
             continue
         if "=" not in line:
             raise MazeConfigError(
-                f"Invalid config syntax on line {line_number}: expected KEY=VALUE."
+                "Invalid config syntax on line "
+                f"{line_number}: expected KEY=VALUE."
             )
         key, value = line.split("=", maxsplit=1)
         key = key.strip()
         value = value.strip()
         if not key or not value:
             raise MazeConfigError(
-                f"Invalid config syntax on line {line_number}: empty key or value."
+                "Invalid config syntax on line "
+                f"{line_number}: empty key or value."
             )
         if key in raw_values:
-            raise MazeConfigError(f"Duplicate config key on line {line_number}: {key}")
+            raise MazeConfigError(
+                f"Duplicate config key on line {line_number}: {key}"
+            )
         raw_values[key] = value
 
     missing_keys = [key for key in REQUIRED_KEYS if key not in raw_values]
@@ -90,14 +94,17 @@ def load_config(path_str: str) -> MazeConfig:
 
     perfect = _parse_bool(raw_values["PERFECT"], "PERFECT")
     if not perfect:
-        raise MazeConfigError("Only PERFECT=True is supported by the current generator.")
+        raise MazeConfigError(
+            "Only PERFECT=True is supported by the current generator."
+        )
 
-    seed = raw_values.get("SEED")
-    if seed is not None:
+    seed_value = raw_values.get("SEED")
+    seed: int | str | None = seed_value
+    if seed_value is not None:
         try:
-            seed = int(seed)
+            seed = int(seed_value)
         except ValueError:
-            seed = seed
+            seed = seed_value
 
     return MazeConfig(
         width=width,
@@ -132,7 +139,9 @@ def _parse_coordinate(value: str, key: str) -> Coordinate:
         x = int(parts[0])
         y = int(parts[1])
     except ValueError as exc:
-        raise MazeConfigError(f"{key} must contain integer coordinates.") from exc
+        raise MazeConfigError(
+            f"{key} must contain integer coordinates."
+        ) from exc
     return Coordinate(x=x, y=y)
 
 

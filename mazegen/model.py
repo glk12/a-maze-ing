@@ -108,7 +108,10 @@ class Maze:
 
         return self._cells[coord.y * self.width + coord.x]
 
-    def neighbors(self, coord: Coordinate) -> list[tuple[Direction, Coordinate]]:
+    def neighbors(
+        self,
+        coord: Coordinate,
+    ) -> list[tuple[Direction, Coordinate]]:
         """Return in-bounds neighbor coordinates around a cell."""
 
         result: list[tuple[Direction, Coordinate]] = []

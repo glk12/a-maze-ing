@@ -25,9 +25,9 @@ def build_output_text(
     lines.extend(
         [
             "",
-            f"ENTRY={entry.x},{entry.y}",
-            f"EXIT={exit_coord.x},{exit_coord.y}",
-            f"PATH={path_directions}",
+            f"{entry.x},{entry.y}",
+            f"{exit_coord.x},{exit_coord.y}",
+            f"{path_directions}",
         ]
     )
     return "\n".join(lines) + "\n"

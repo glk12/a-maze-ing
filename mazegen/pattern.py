@@ -14,6 +14,21 @@ PATTERN_ROWS = (
 )
 
 
+def get_42_pattern_minimum_size() -> tuple[int, int]:
+    """Return the minimum maze size required to place the 42 pattern."""
+
+    pattern_height = len(PATTERN_ROWS)
+    pattern_width = len(PATTERN_ROWS[0])
+    return pattern_width + 2, pattern_height + 2
+
+
+def can_fit_42_pattern(width: int, height: int) -> bool:
+    """Return whether the maze dimensions allow the 42 pattern."""
+
+    minimum_width, minimum_height = get_42_pattern_minimum_size()
+    return width >= minimum_width and height >= minimum_height
+
+
 def get_42_pattern_cells(
     width: int,
     height: int,
@@ -24,7 +39,7 @@ def get_42_pattern_cells(
 
     pattern_height = len(PATTERN_ROWS)
     pattern_width = len(PATTERN_ROWS[0])
-    if width < pattern_width + 2 or height < pattern_height + 2:
+    if not can_fit_42_pattern(width, height):
         return set()
 
     placements = [
