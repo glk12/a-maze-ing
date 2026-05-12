@@ -313,7 +313,6 @@ backends.
 
 Classic references used for the topic:
 
-- The official project subject: [`en.subject.pdf`](/home/glopes-a/a-maze-ing/en.subject.pdf)
 - Python documentation: https://docs.python.org/3/
 - `dataclasses` documentation: https://docs.python.org/3/library/dataclasses.html
 - `enum` documentation: https://docs.python.org/3/library/enum.html
